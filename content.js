@@ -57,6 +57,10 @@ let startX = 0;
 let startY = 0;
 let currentX = 0;
 let currentY = 0;
+// 드래그 종료 시간 추적 변수
+let lastDragEndTime = 0;
+// 마지막 드래그 거리
+let lastDragDistance = 0;
 
 // Auto-scroll related variables
 let autoScrolling = false;
@@ -78,8 +82,13 @@ document.addEventListener('keyup', function (e) {
   if (e.key === 'Shift') keyState.shift = false;
 });
 
-// Mouse event tracking
-document.addEventListener('mousedown', function (e) {
+// 기존 이벤트 리스너 제거 및 새 리스너 추가 (capture 단계에서 처리)
+document.removeEventListener('mousedown', onMouseDown);
+document.removeEventListener('mousemove', onMouseMove);
+document.removeEventListener('mouseup', onMouseUp);
+
+// mousedown 핸들러 함수
+function onMouseDown(e) {
   if (!settings.enabled) return;
 
   // Key combination check
@@ -100,8 +109,20 @@ document.addEventListener('mousedown', function (e) {
     currentY = e.clientY;
     lastScrollY = window.scrollY; // Initial scroll position storage
 
+    // 드래그 시작시 드래그 거리 초기화
+    lastDragDistance = 0;
+
     // Prevent default base event actions (e.g., text selection)
     e.preventDefault();
+
+    // 우클릭이나 휠클릭인 경우 버블링도 막습니다
+    if (
+      e.button === MOUSE_BUTTON_MAP.right ||
+      e.button === MOUSE_BUTTON_MAP.middle
+    ) {
+      e.stopPropagation();
+      return false;
+    }
 
     // Create selection box visualization element
     createSelectionBox();
@@ -109,9 +130,10 @@ document.addEventListener('mousedown', function (e) {
     // Create link counter
     createLinkCounter();
   }
-});
+}
 
-document.addEventListener('mousemove', function (e) {
+// mousemove 핸들러 함수
+function onMouseMove(e) {
   if (isDragging) {
     // Save current mouse position
     currentX = e.clientX;
@@ -137,10 +159,20 @@ document.addEventListener('mousemove', function (e) {
 
     e.preventDefault();
   }
-});
+}
 
-document.addEventListener('mouseup', function (e) {
+// mouseup 핸들러 함수
+function onMouseUp(e) {
   if (isDragging) {
+    // 드래그 거리 계산
+    lastDragDistance = Math.sqrt(
+      Math.pow(Math.abs(startX - currentX), 2) +
+        Math.pow(Math.abs(startY - currentY), 2)
+    );
+
+    // 드래그 종료 시간 기록
+    lastDragEndTime = Date.now();
+
     isDragging = false;
 
     // Auto-scroll stop
@@ -163,9 +195,72 @@ document.addEventListener('mouseup', function (e) {
     // Remove link counter
     removeLinkCounter();
 
+    // 항상 이벤트의 기본 동작을 방지합니다. 우클릭 메뉴 또는 휠클릭 새 탭 열기를 막습니다.
     e.preventDefault();
+
+    // 버블링도 막아서 다른 핸들러가 처리하지 않도록 합니다
+    e.stopPropagation();
+
+    // 우클릭이나 휠클릭인 경우 기본 동작을 더 확실하게 차단합니다
+    if (
+      e.button === MOUSE_BUTTON_MAP.right ||
+      e.button === MOUSE_BUTTON_MAP.middle
+    ) {
+      return false;
+    }
   }
-});
+}
+
+// capture 단계에서 이벤트 핸들러 등록
+document.addEventListener('mousedown', onMouseDown, true);
+document.addEventListener('mousemove', onMouseMove, true);
+document.addEventListener('mouseup', onMouseUp, true);
+
+// 우클릭 메뉴(contextmenu)를 차단하는 핸들러
+function onContextMenu(e) {
+  // 드래그 중에만 우클릭 메뉴를 차단합니다
+  if (isDragging) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+
+  // 드래그가 종료된 직후인지 확인 (실제 드래그 감지)
+  if (settings.mouseButton === 'right') {
+    // 드래그 종료 시간이 최근이고 드래그 거리가 짧지 않은 경우에만 차단
+
+    // 실제 드래그가 있었을 때만 차단 (최소 드래그 거리 1px)
+    // 시간 간격 200ms로 줄임
+    if (Date.now() - lastDragEndTime < 200 && lastDragDistance > 1) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }
+}
+
+// 휠클릭 이벤트(auxclick)를 차단하는 핸들러
+function onAuxClick(e) {
+  // 드래그 중에만 휠클릭 동작을 차단합니다
+  if (isDragging) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+
+  // 드래그가 종료된 직후인지 확인 (실제 드래그 감지)
+  if (settings.mouseButton === 'middle') {
+    // 드래그 종료 시간이 최근이고 드래그 거리가 짧지 않은 경우에만 차단
+
+    // 실제 드래그가 있었을 때만 차단 (최소 드래그 거리 1px)
+    // 시간 간격 200ms로 줄임
+    if (Date.now() - lastDragEndTime < 200 && lastDragDistance > 1) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }
+}
 
 // Check if auto-scroll is needed and start/stop
 function checkAutoScroll(mouseY) {
@@ -359,7 +454,7 @@ function collectLinksInSelection() {
   const bottom = Math.max(startY + scrollY, currentY + scrollY);
 
   // Do not collect links if drag area is too small
-  const minSize = 5; // Minimum 5 pixels of drag area must exist
+  const minSize = 1; // Minimum 1 pixel of drag area must exist
   if (right - left < minSize && bottom - top < minSize) {
     return [];
   }
@@ -514,3 +609,7 @@ document.addEventListener(
   },
   { passive: false }
 );
+
+// 추가 이벤트 리스너 등록
+document.addEventListener('contextmenu', onContextMenu, true);
+document.addEventListener('auxclick', onAuxClick, true);
