@@ -267,13 +267,19 @@ function checkAutoScroll(mouseY) {
     window.scrollY >=
     document.documentElement.scrollHeight - window.innerHeight - 2;
 
-  if ((isNearTop && !atTop) || (isNearBottom && !atBottom)) {
-    // Start scroll if not already scrolling and we're not at the scroll limits
+  // 스크롤이 가능한 방향으로만 스크롤 시작
+  if (isNearTop && !atTop) {
+    // 위로 스크롤 가능한 경우
     if (!autoScrolling) {
-      startAutoScroll(isNearTop ? -SCROLL_SPEED : SCROLL_SPEED);
+      startAutoScroll(-SCROLL_SPEED);
+    }
+  } else if (isNearBottom && !atBottom) {
+    // 아래로 스크롤 가능한 경우
+    if (!autoScrolling) {
+      startAutoScroll(SCROLL_SPEED);
     }
   } else {
-    // Stop scroll if out of scroll area or at scroll limits
+    // 스크롤 영역 밖이거나 스크롤 경계에 도달한 경우
     stopAutoScroll();
   }
 }
@@ -284,51 +290,41 @@ function startAutoScroll(speed) {
 
   autoScrolling = true;
   scrollInterval = setInterval(function () {
-    // Check if we're already at scroll limits
+    // 현재 스크롤 위치 확인
     const atTop = window.scrollY <= 0;
     const atBottom =
       window.scrollY >=
-      document.documentElement.scrollHeight - window.innerHeight;
+      document.documentElement.scrollHeight - window.innerHeight - 2;
 
-    // If we're at the top and trying to scroll up, or at the bottom and trying to scroll down, stop
+    // 스크롤 경계에 도달했으면 중지
     if ((speed < 0 && atTop) || (speed > 0 && atBottom)) {
       stopAutoScroll();
       return;
     }
 
-    // Current scroll position
+    // 스크롤 전 위치 저장
     const beforeScrollY = window.scrollY;
 
-    // Scroll execution
+    // 스크롤 실행
     window.scrollBy(0, speed);
 
-    // Scroll after position
+    // 스크롤 후 위치 확인
     const afterScrollY = window.scrollY;
     const actualScrollDelta = afterScrollY - beforeScrollY;
 
-    // Correct only for actually scrolled amount
+    // 실제로 스크롤된 경우에만 위치 조정
     if (actualScrollDelta !== 0) {
-      // startY correction (start point should move with scroll)
+      // startY 위치 보정 (스크롤을 고려하여 시작점 이동)
       startY -= actualScrollDelta;
 
-      // Update selection box and link counter
+      // 선택 영역과 카운터 업데이트
       updateSelectionBox();
       updateLinkCounter(currentX, currentY);
     } else {
-      // If no actual scroll happened despite trying, we're at the edge
+      // 스크롤이 발생하지 않았으면 경계에 도달한 것으로 간주하고 중지
       stopAutoScroll();
     }
-
-    // Stop auto-scroll if no more scrollable
-    if (
-      (speed > 0 &&
-        afterScrollY >=
-          document.documentElement.scrollHeight - window.innerHeight) ||
-      (speed < 0 && afterScrollY <= 0)
-    ) {
-      stopAutoScroll();
-    }
-  }, 10); // Faster update rate (changed from 16ms to 10ms)
+  }, 10); // 10ms 간격으로 업데이트 (부드러운 스크롤 효과)
 }
 
 // Auto-scroll stop
@@ -599,25 +595,45 @@ document.addEventListener(
   'wheel',
   function (e) {
     if (isDragging) {
-      // Prevent default to avoid breaking the drag operation
+      // 기본 동작 방지
       e.preventDefault();
 
-      // Check if we can scroll in the requested direction
-      const canScrollUp = window.scrollY > 0;
-      const canScrollDown =
-        window.scrollY <
-        document.documentElement.scrollHeight - window.innerHeight;
+      // 현재 스크롤 가능 여부 확인
+      const atTop = window.scrollY <= 0;
+      const atBottom =
+        window.scrollY >=
+        document.documentElement.scrollHeight - window.innerHeight - 2;
 
-      // Only scroll if we're not at the limits or if we're scrolling in the valid direction
-      if ((e.deltaY < 0 && canScrollUp) || (e.deltaY > 0 && canScrollDown)) {
-        // Update scroll position manually
-        window.scrollBy(0, e.deltaY);
+      // 스크롤 방향 확인 (deltaY > 0: 아래로, deltaY < 0: 위로)
+      const isScrollingDown = e.deltaY > 0;
+      const isScrollingUp = e.deltaY < 0;
 
-        // Adjust startY to maintain correct selection box position
-        startY -= e.deltaY;
+      // 스크롤 한계에 도달했을 때는 startY를 조정하지 않음
+      if ((isScrollingUp && atTop) || (isScrollingDown && atBottom)) {
+        // 스크롤 한계에 도달했을 때는 startY 위치를 유지
+        // 하지만 UI는 여전히 업데이트
+        updateSelectionBox();
+        updateLinkCounter(currentX, currentY);
+        return;
       }
 
-      // Always update UI elements, even if we didn't scroll
+      // 스크롤 실행 전 위치 저장
+      const beforeScrollY = window.scrollY;
+
+      // 수동으로 스크롤 조정
+      window.scrollBy(0, e.deltaY);
+
+      // 스크롤 후 위치 확인
+      const afterScrollY = window.scrollY;
+      const actualScrollDelta = afterScrollY - beforeScrollY;
+
+      // 실제로 스크롤된 경우에만 startY 조정
+      if (actualScrollDelta !== 0) {
+        // 드래그 시작 위치 조정 (스크롤에 맞춰 이동)
+        startY -= actualScrollDelta;
+      }
+
+      // 선택 상자와 링크 카운터 업데이트
       updateSelectionBox();
       updateLinkCounter(currentX, currentY);
     }
