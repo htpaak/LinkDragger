@@ -1,18 +1,10 @@
-// Message listener setup
+// Message listener setup - 새 탭 열린 후 현재 탭 포커스 유지를 위한 처리
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  if (request.action === 'openLinks') {
-    // 메시지는 받되 아무 작업도 수행하지 않음
-    return true;
-  }
+  // 다른 메시지는 필요 없음
+  return true;
 });
 
-// Open links in new tabs
-function openLinks(links) {
-  // 비활성화 (content.js에서 직접 링크를 열기로 변경되었음)
-  return;
-}
-
-// URL validation
+// URL validation 유틸리티 함수 (필요시 사용)
 function isValidUrl(url) {
   try {
     new URL(url);

@@ -175,33 +175,24 @@ function onMouseUp(e) {
 
     isDragging = false;
 
-    // Auto-scroll stop
+    // 자동 스크롤 중지
     stopAutoScroll();
 
-    // Collect links in selected area and open
+    // 선택 영역의 링크 수집 및 처리
     const links = collectLinksInSelection();
-
-    // Unique links array without duplicates
     const uniqueLinks = removeDuplicateLinks(links);
-
-    // Add excluded keyword filtering
     const filteredLinks = filterExcludedLinks(uniqueLinks);
-
     openLinksInNewTabs(filteredLinks);
 
-    // Remove selection box element
+    // UI 요소 제거
     removeSelectionBox();
-
-    // Remove link counter
     removeLinkCounter();
 
-    // 항상 이벤트의 기본 동작을 방지합니다. 우클릭 메뉴 또는 휠클릭 새 탭 열기를 막습니다.
+    // 이벤트 기본 동작 방지
     e.preventDefault();
-
-    // 버블링도 막아서 다른 핸들러가 처리하지 않도록 합니다
     e.stopPropagation();
 
-    // 우클릭이나 휠클릭인 경우 기본 동작을 더 확실하게 차단합니다
+    // 우클릭이나 휠클릭인 경우 컨텍스트 메뉴 방지
     if (
       e.button === MOUSE_BUTTON_MAP.right ||
       e.button === MOUSE_BUTTON_MAP.middle
@@ -565,47 +556,42 @@ function filterExcludedLinks(links) {
 function openLinksInNewTabs(links) {
   if (links.length === 0) return;
 
-  // 현재 창에 포커스를 위한 메타 설정
+  // 현재 활성 요소 저장 (포커스 복원용)
   const currentActiveElement = document.activeElement;
 
-  // 마우스 버튼 상관없이, 모든 링크에 Ctrl+Click을 시뮬레이션
-  // Ctrl+Click은 브라우저에서 새 탭에서 열고 현재 탭 유지 기능이 있음
+  // 모든 링크를 Ctrl+Click으로 열기 (새 탭에서 열고 현재 탭 유지)
   links.forEach(url => {
+    // 링크 요소 생성
     const a = document.createElement('a');
     a.href = url;
     a.target = '_blank';
     a.rel = 'noopener';
     document.body.appendChild(a);
 
-    // Ctrl+Click 시뮬레이션
+    // Ctrl+Click 시뮬레이션 (새 탭 열기 + 현재 탭 유지)
     const clickEvent = new MouseEvent('click', {
       bubbles: true,
       cancelable: true,
       view: window,
-      ctrlKey: true, // Ctrl 키를 누른 상태로 클릭
-      shiftKey: false, // Shift 키는 누르지 않음
+      ctrlKey: true, // Ctrl 키 활성화
+      shiftKey: false, // Shift 키 비활성화
     });
 
-    // 이벤트 발생 (fallback 없이 한 번만 열기)
+    // 이벤트 발생
     a.dispatchEvent(clickEvent);
 
     // 요소 제거
     document.body.removeChild(a);
-
-    // 바로 현재 창에 포커스 복원
-    window.focus();
   });
 
-  // 포커스 복원 시도
+  // 포커스 복원
   window.focus();
   if (currentActiveElement && document.contains(currentActiveElement)) {
     currentActiveElement.focus();
   }
 
-  // 페이지 스크립트 실행 순서를 고려해 약간의 지연 후 다시 포커스 복원
-  setTimeout(() => {
-    window.focus();
-  }, 0);
+  // 약간의 지연 후 추가 포커스 복원 시도
+  setTimeout(() => window.focus(), 0);
 }
 
 // Prevent wheel event from interrupting drag
