@@ -565,18 +565,47 @@ function filterExcludedLinks(links) {
 function openLinksInNewTabs(links) {
   if (links.length === 0) return;
 
-  // Open each link without changing focus
+  // 현재 창에 포커스를 위한 메타 설정
+  const currentActiveElement = document.activeElement;
+
+  // 마우스 버튼 상관없이, 모든 링크에 Ctrl+Click을 시뮬레이션
+  // Ctrl+Click은 브라우저에서 새 탭에서 열고 현재 탭 유지 기능이 있음
   links.forEach(url => {
     const a = document.createElement('a');
     a.href = url;
     a.target = '_blank';
-    a.rel = 'noopener'; // This prevents focus from changing to the new tab
-
-    // Add to document, click and remove
+    a.rel = 'noopener';
     document.body.appendChild(a);
-    a.click();
+
+    // Ctrl+Click 시뮬레이션
+    const clickEvent = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      ctrlKey: true, // Ctrl 키를 누른 상태로 클릭
+      shiftKey: false, // Shift 키는 누르지 않음
+    });
+
+    // 이벤트 발생 (fallback 없이 한 번만 열기)
+    a.dispatchEvent(clickEvent);
+
+    // 요소 제거
     document.body.removeChild(a);
+
+    // 바로 현재 창에 포커스 복원
+    window.focus();
   });
+
+  // 포커스 복원 시도
+  window.focus();
+  if (currentActiveElement && document.contains(currentActiveElement)) {
+    currentActiveElement.focus();
+  }
+
+  // 페이지 스크립트 실행 순서를 고려해 약간의 지연 후 다시 포커스 복원
+  setTimeout(() => {
+    window.focus();
+  }, 0);
 }
 
 // Prevent wheel event from interrupting drag
