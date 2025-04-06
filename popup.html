@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>LinkDragger</title>
+    <style>
+      body {
+        width: 300px;
+        padding: 10px;
+        font-family: Arial, sans-serif;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      h1 {
+        font-size: 18px;
+        margin-bottom: 15px;
+      }
+      button {
+        padding: 8px 12px;
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+      button:hover {
+        background-color: #3367d6;
+      }
+      .shortcut-info {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+      }
+      .textarea-label {
+        display: block;
+        margin-bottom: 5px;
+      }
+      .excluded-keywords {
+        width: 100%;
+        height: 60px;
+        resize: vertical;
+        font-family: Arial, sans-serif;
+        padding: 5px;
+        margin-top: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>LinkDragger Settings</h1>
+    <div class="container">
+      <div class="option">
+        <label for="modifier-key">Shortcut key:</label>
+        <select id="modifier-key">
+          <option value="ctrl">Ctrl</option>
+          <option value="alt">Alt</option>
+          <option value="shift">Shift</option>
+          <option value="none">None</option>
+        </select>
+      </div>
+
+      <div class="option">
+        <label for="mouse-button">Mouse button:</label>
+        <select id="mouse-button">
+          <option value="left">Left click</option>
+          <option value="right">Right click</option>
+          <option value="middle">Wheel click</option>
+        </select>
+      </div>
+
+      <div class="option">
+        <label for="enabled">Enable:</label>
+        <input type="checkbox" id="enabled" checked />
+      </div>
+
+      <div>
+        <label for="excluded-keywords" class="textarea-label"
+          >Excluded keywords (separate each keyword with a comma):</label
+        >
+        <textarea
+          id="excluded-keywords"
+          class="excluded-keywords"
+          placeholder="Example: ad,advertisement,sponsor"
+        ></textarea>
+      </div>
+
+      <button id="save-btn">Save</button>
+
+      <div class="shortcut-info">
+        <p>
+          How to use: Hold down the selected shortcut key and drag with the
+          selected mouse button to open links within the area in new tabs.
+        </p>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

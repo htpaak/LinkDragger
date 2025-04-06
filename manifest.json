@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "LinkDragger",
+  "version": "1.0",
+  "description": "Extension that opens links in the drag area in new tabs",
+  "permissions": ["tabs", "activeTab", "storage"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
