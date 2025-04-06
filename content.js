@@ -202,14 +202,9 @@ function onMouseUp(e) {
   }
 }
 
-// capture 단계에서 이벤트 핸들러 등록
-document.addEventListener('mousedown', onMouseDown, true);
-document.addEventListener('mousemove', onMouseMove, true);
-document.addEventListener('mouseup', onMouseUp, true);
-
 // 우클릭 메뉴(contextmenu)를 차단하는 핸들러
 function onContextMenu(e) {
-  // 드래그 중에만 우클릭 메뉴를 차단합니다
+  // 드래그 중에는 항상 우클릭 메뉴를 차단합니다
   if (isDragging) {
     e.preventDefault();
     e.stopPropagation();
@@ -218,11 +213,8 @@ function onContextMenu(e) {
 
   // 드래그가 종료된 직후인지 확인 (실제 드래그 감지)
   if (settings.mouseButton === 'right') {
-    // 드래그 종료 시간이 최근이고 드래그 거리가 짧지 않은 경우에만 차단
-
-    // 실제 드래그가 있었을 때만 차단 (최소 드래그 거리 1px)
-    // 시간 간격 200ms로 줄임
-    if (Date.now() - lastDragEndTime < 200 && lastDragDistance > 1) {
+    // 시간 간격을 더 늘려 다운로드 링크 처리 시간을 고려 (200ms → 300ms)
+    if (Date.now() - lastDragEndTime < 300 && lastDragDistance > 1) {
       e.preventDefault();
       e.stopPropagation();
       return false;
@@ -555,6 +547,19 @@ function openLinksInNewTabs(links) {
   // 현재 활성 요소 저장 (포커스 복원용)
   const currentActiveElement = document.activeElement;
 
+  // 다운로드 링크가 있는지 확인
+  const hasDownloadLinks = links.some(url => {
+    // 다운로드 링크 여부 확인
+    try {
+      // 쿼리 선택자에서 href 속성을 이용해 다운로드 링크 찾기 시도
+      const elements = document.querySelectorAll(`a[href="${url}"]`);
+      return Array.from(elements).some(el => el.hasAttribute('download'));
+    } catch (e) {
+      // 잘못된 URL 형식이 있을 수 있으므로 오류 무시
+      return false;
+    }
+  });
+
   // 모든 링크를 Ctrl+Click으로 열기 (새 탭에서 열고 현재 탭 유지)
   links.forEach(url => {
     // 링크 요소 생성
@@ -579,6 +584,29 @@ function openLinksInNewTabs(links) {
     // 요소 제거
     document.body.removeChild(a);
   });
+
+  // 다운로드 링크가 있는 경우 더 긴 시간 지연 추가
+  if (hasDownloadLinks) {
+    // 다운로드 링크 처리를 위한 추가 지연
+    setTimeout(() => {
+      // 추가 컨텍스트 메뉴 차단
+      document.addEventListener(
+        'contextmenu',
+        function blockAdditionalContextMenus(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          // 일회성 이벤트 핸들러
+          document.removeEventListener(
+            'contextmenu',
+            blockAdditionalContextMenus,
+            true
+          );
+          return false;
+        },
+        true
+      );
+    }, 50);
+  }
 
   // 포커스 복원
   window.focus();
@@ -641,6 +669,11 @@ document.addEventListener(
   { passive: false }
 );
 
-// 추가 이벤트 리스너 등록
+// 이벤트 리스너 등록
 document.addEventListener('contextmenu', onContextMenu, true);
 document.addEventListener('auxclick', onAuxClick, true);
+
+// capture 단계에서 이벤트 핸들러 등록
+document.addEventListener('mousedown', onMouseDown, true);
+document.addEventListener('mousemove', onMouseMove, true);
+document.addEventListener('mouseup', onMouseUp, true);
