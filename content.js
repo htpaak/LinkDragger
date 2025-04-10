@@ -211,10 +211,15 @@ function onContextMenu(e) {
     return false;
   }
 
+  // 마지막 열린 링크 수
+  const lastOpenedLinksCount = window.lastOpenedLinksCount || 0;
+
   // 드래그가 종료된 직후인지 확인 (실제 드래그 감지)
   if (settings.mouseButton === 'right') {
-    // 시간 간격을 더 늘려 다운로드 링크 처리 시간을 고려 (200ms → 300ms)
-    if (Date.now() - lastDragEndTime < 300 && lastDragDistance > 1) {
+    // 링크 개수에 따라 시간 간격을 동적으로 조정 (기본 300ms + 링크 당 100ms 추가)
+    const delayTime = Math.min(2000, 300 + lastOpenedLinksCount * 100);
+    
+    if (Date.now() - lastDragEndTime < delayTime && lastDragDistance > 1) {
       e.preventDefault();
       e.stopPropagation();
       return false;
@@ -544,9 +549,12 @@ function filterExcludedLinks(links) {
 function openLinksInNewTabs(links) {
   if (links.length === 0) return;
 
+  // 링크 개수 저장 (우클릭 메뉴 차단 시간 계산용)
+  window.lastOpenedLinksCount = links.length;
+  
   // 현재 활성 요소 저장 (포커스 복원용)
   const currentActiveElement = document.activeElement;
-
+   
   // 다운로드 링크가 있는지 확인
   const hasDownloadLinks = links.some(url => {
     // 다운로드 링크 여부 확인
@@ -585,27 +593,25 @@ function openLinksInNewTabs(links) {
     document.body.removeChild(a);
   });
 
-  // 다운로드 링크가 있는 경우 더 긴 시간 지연 추가
-  if (hasDownloadLinks) {
-    // 다운로드 링크 처리를 위한 추가 지연
+  // 다운로드 링크가 있거나 링크가 많은 경우 추가 차단 설정
+  if (hasDownloadLinks || links.length > 5) {
+    // 최대 10초 동안 추가 우클릭 메뉴 차단 (긴 다운로드의 경우)
+    const blockDuration = Math.min(10000, links.length * 500);
+    
+    // 우클릭 메뉴를 지속적으로 차단하는 이벤트 핸들러
+    const blockContextMenuHandler = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+    
+    // 핸들러 등록
+    document.addEventListener('contextmenu', blockContextMenuHandler, true);
+    
+    // 일정 시간 후 핸들러 제거
     setTimeout(() => {
-      // 추가 컨텍스트 메뉴 차단
-      document.addEventListener(
-        'contextmenu',
-        function blockAdditionalContextMenus(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          // 일회성 이벤트 핸들러
-          document.removeEventListener(
-            'contextmenu',
-            blockAdditionalContextMenus,
-            true
-          );
-          return false;
-        },
-        true
-      );
-    }, 50);
+      document.removeEventListener('contextmenu', blockContextMenuHandler, true);
+    }, blockDuration);
   }
 
   // 포커스 복원
