@@ -3,9 +3,23 @@
   "name": "LinkDragger",
   "version": "1.0",
   "description": "Extension that opens links in the drag area in new tabs",
-  "permissions": ["tabs", "activeTab", "storage"],
+  "permissions": ["storage"],
+  "icons": {
+    "16": "assets/icon_16.png",
+    "32": "assets/icon_32.png",
+    "48": "assets/icon_48.png",
+    "64": "assets/icon_64.png",
+    "128": "assets/icon_128.png"
+  },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "assets/icon_16.png",
+      "32": "assets/icon_32.png",
+      "48": "assets/icon_48.png",
+      "64": "assets/icon_64.png",
+      "128": "assets/icon_128.png"
+    }
   },
   "content_scripts": [
     {
